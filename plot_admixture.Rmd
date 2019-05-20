@@ -1,0 +1,187 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+##### Packages #####
+library(tictoc)
+library("devtools", lib.loc="~/R/win-library/3.5")
+library("genepop", lib.loc="~/R/win-library/3.5")
+library("diveRsity", lib.loc="~/R/win-library/3.5")
+library("adegenet", lib.loc="~/R/win-library/3.5")
+library("xlsx", lib.loc="~/R/win-library/3.5")
+library("sendplot", lib.loc="~/R/win-library/3.5")
+```
+#genepop metadata
+```{r}
+palette_21 = c("#f44336","#c62828","#00FFFF","#00ff00","#9c27b0","#4a148c","#673ab7","#311b92","#2196f3","#0d47a1","#2196f3","#0d47a1","#00bcd4","#009688","#cddc39","#827717","#ffc107","#ff6f00","#8d6e63","#4e342e","#9e9e9e","#424242","#78909c","#455a64")
+#c("#E74C3C","#8E44AD","#3498DB","#16A085","#2ECC71","#F1C40F","#D35400","#ECF0F1","#95A5A6","#34495E","#CCFFFF","#FF33FF","#00FFCC","#873600",)
+PCA23_palette = c("#000ffF","#0033CC","#006699","#009966","#006600",
+"#66CC00","#CCFF00","#CC9900","#CC3300","#CC0033",
+"#CC0099","#CC00FF","#6633FF","#CC66FF","#FF66CC",
+"#FF3366","#FF6633","#FF9900","#6699ff","#33ccff","#00ffff","#00ff99")
+
+pop_names = c("Delavan","Mille Lacs","Red River")
+  # c("Delavan","Lake_Wisconsin","Big_Arbor_Vitae","Chippewa_Flowage","Cutfoot_Sioux","Eau_Claire_River","Escanaba","Kawaguesaga","Lake_Koronis","Lake_Millicent","Manitowish_Lake","Medicine_Lake","Mille_Lacs","Ottertail_Lake","Pike_River","Pine_River","Red_Lake","Sanford_Lake","Sarah_Lake","St_Louis_River","St_Louis_River","Turtle_Flambeau_Flowage","Willow_Flowage","Wolf_River")
+
+pop_xval = c(48,96,143,186,211,258,301,342,359,392,428,475,504,427,555,585,614,660,690,720,758,805,845)
+pop_yval = c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+
+metadata_popnames_21 = as.factor(c(rep("Delavan",47),
+  #  rep("Lake_Wisconsin",48),
+  #  rep("Big_Arbor_Vitae",47),
+  #  rep("Chippewa_Flowage",43),
+  #  rep("Cutfoot_Sioux",25),
+  #  rep("Eau_Claire_River",47),
+  #  rep("Escanaba",43),
+  #  rep("Kawaguesaga",41),
+  #  rep("Lake_Koronis",17),
+  #  rep("Lake_Millicent",33),
+  #  rep("Manitowish_Lake",36),
+  #  rep("Medicine_Lake",47),
+   rep("Mille_Lacs",30),
+  #  rep("Ottertail_Lake",23),
+  #  rep("Pike_River",28),
+  #  rep("Pine_River",30),
+   rep("Red_Lake",30)
+  #  rep("Sanford_Lake",46),
+  #  rep("Sarah_Lake",30),
+  #  rep("St_Louis_River",30),
+  #  rep("Turtle_Flambeau_Flowage",38),
+  #  rep("Willow_Flowage",47),
+  #  rep("Wolf_River",40)
+  ))
+
+```
+#plot admixture (loop)
+```{r}
+for (i in 3:14) {
+read_name = paste(c("v4_admixture.",as.character(i),".Q"),collapse = "")
+  tbl = read.table(read_name)
+  barplot(t(as.matrix(tbl)), col = palette_21[1:i], xlab = i, ylab = "Admixture", border = "NA",
+          ylim = c(0,1),xlim = c(0,845))
+  text(c(48,96,143,186,211,258,301,342,359,392,428,475,504,527,555,585,614,660,690,720,758,805,845),
+       c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+       c("Delavan","Lake_Wisconsin","Big_Arbor_Vitae","Chippewa_Flowage","Cutfoot_Sioux","Eau_Claire_River","Escanaba","Kawaguesaga","Lake_Koronis","Lake_Millicent","Manitowish_Lake","Medicine_Lake","Mille_Lacs","Ottertail_Lake","Pike_River","Pine_River","Red_Lake","Sanford_Lake","Sarah_Lake","St_Louis_River","Turtle_Flambeau_Flowage","Willow_Flowage","Wolf_River")
+       ,adj = 0,srt = 90)
+                }
+  
+```
+#plot admixture onc k
+```{r}
+tbl = read.table("C:/Users/mboot217/Desktop/test_admix/v6_SNPs_ALL_pops.12.Q")
+tbl_clean = NA
+tbl_messy = NA
+for (i in 1:nrow(tbl)) {
+  if (max(tbl[i,])>0.6) {
+    tbl_clean = rbind.data.frame(tbl_clean,tbl[i,])
+  }
+  if (max(tbl[i,])<0.6){
+    tbl_messy = rbind.data.frame(tbl_messy,tbl[i,])
+  }
+}
+pdf("C:/Users/mboot217/Desktop/test_admix/v6_SNPs_ALL_pops.12.pdf")
+barplot(t(as.matrix(tbl_clean)), col = PCA23_palette, xlab = nrow(tbl_clean), ylab = "Admixture", border = "NA")
+barplot(t(as.matrix(tbl_messy)), col = PCA23_palette, xlab = nrow(tbl_messy), ylab = "Admixture", border = "NA")
+barplot(t(as.matrix(tbl)), col = PCA23_palette, xlab = nrow(tbl), ylab = "Admixture", border = "NA")
+dev.off()
+
+# ,
+#           ylim = c(0,1),xlim = c(0,845))
+# text(c(48,96,143,186,211,258,301,342,359,392,428,475,504,527,555,585,614,660,690,720,758,805,845),
+#        c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+#        c("Delavan","Lake_Wisconsin","Big_Arbor_Vitae","Chippewa_Flowage","Cutfoot_Sioux","Eau_Claire_River","Escanaba","Kawaguesaga","Lake_Koronis","Lake_Millicent","Manitowish_Lake","Medicine_Lake","Mille_Lacs","Ottertail_Lake","Pike_River","Pine_River","Red_Lake","Sanford_Lake","Sarah_Lake","St_Louis_River","Turtle_Flambeau_Flowage","Willow_Flowage","Wolf_River")
+#        ,adj = 0,srt = 90)
+```
+#old admixture example
+```{r}
+setwd("I:\\WAE_RAD_Data\\1710-PE-Whitelisted-Populations\\Paired_End\\MN_Subset\\")
+MN_subset = read.genepop('./MN_populations.snps.gen')
+
+#test_HW_small = hw.test(pops_SMALL$raw_data)
+#fstat(pops_SMALL)
+
+
+# ADMIXTURE  #
+# 9 color swatch: col = c("gray0","tan4","green","mistyrose3","yellow","midnightblue","orange","moccasin","gray50"),
+setwd('I:/WAE_RAD_Data/1710-PE-Whitelisted-Populations/Paired_End/WI_Subset/Admixture')
+
+swatch9 = c("gray90","tan4","green","mistyrose3","yellow","midnightblue","orange","moccasin","gray50")
+swatch9b = c("gray90","gray60","gray30","wheat3","tan3","burlywood4","darkgreen","forestgreen","yellowgreen")
+swatch9c = c("wheat3","tan3","burlywood4","darkgreen","forestgreen","yellowgreen","gray90","gray60","gray30")
+
+WI_N = c(47,94,118,166,197,244,276,323,370)
+WI_names = c("Chip","Eau_Cl","Esca","Lake_Milli","Manito","Medicine","St_Lou","Turt_Flam","Wolf")
+
+  
+  
+OUT_pdf = "I:/WAE_RAD_Data/1710-PE-Whitelisted-Populations/Paired_End/WI_Subset/Admixture/K_selection"
+pdf(file = OUT_pdf)
+par(mfrow = c(2,1))
+
+for (i in 2:9) {
+  K = paste(c("WI_populations.",i,".Q"), collapse = "")
+  admix_WI_subset = read.table(K)
+  barplot(t(as.matrix(admix_WI_subset)), 
+          #names.arg = names_9,
+          col = swatch9c[1:i],
+          xlab = "Individual #",
+          ylab = "Ancestry",
+          border = NA,
+          space = 0,
+          main = i,
+          #beside = TRUE
+  )
+  abline(v = WI_N, lty = 5, lwd = 2, col = "blue4")
+  mtext(WI_names, padj = 1, side = 1, at = c(0,47,94,118,166,197,244,276,323), adj = 0, par(las=1), cex = 0.5)
+}
+dev.off()
+
+
+```
+
+#Read Data
+```{r, DAPC}
+tic("read.genepop")
+SNPS_20k = read.genepop('../Populations/test_subset_v4H_populations.snps.gen', ncode = 3)
+toc()
+```
+Build DAPC
+```{r}
+DAPC_20k = dapc(SNPS_20k, n.pca = 500, n.da = 8)
+#DAPC_20k$grp = as.factor(rep("Null", 845)) #NAME AS POP NOT IND
+#DAPC_20k$grp = metadata_popnames_21 #NAME AS POP NOT IND
+```
+
+#plot DAPC
+```{r}
+
+#color_clear = transparent("white",0)
+pdf(file = "../R_products/DAPC/test_ALL_20K.pdf")
+scatter(DAPC_20k,
+        scree.da=FALSE,
+        bg = 'white',
+        pch = 20, 
+        cell = 0,
+        cstar = 0,
+        col = palette_21,#palette_21,
+        #solid = 0.1,
+        cex = .2,
+        clab = 0.2,)#names? Size?
+        #leg = TRUE,
+        #txt.leg = pop_names)
+#points(DAPC_20k$grp.coord[,1],DAPC_20k$grp.coord[,2], pch=4,
+#cex=1, lwd=2, col= palette_21)
+par(xpd = TRUE)
+dev.off()
+```
+
+```{r}
+SNPS_20k@other$popname = metadata_popnames_21
+
+
+#strata(SNPS_20k) = data.frame(other(SNPS_20k))
+SNPS_20k@strata = data.frame(other(SNPS_20k))
+```
+
