@@ -33,6 +33,12 @@ for (i in 1:nrow(n_by_pop)) {
 }
 n_by_pop_strata = as.data.frame(n_by_pop_strata)
 
+#make n_by_pop cumulative counts to give x values for labels
+x_lab_vec = NULL
+for (i in 1:nrow(n_by_pop)) {
+  x_lab_vec = c(x_lab_vec, sum(n_by_pop[1:i,"V1"]))
+}
+
 #extract population names, removing the ID number that gets pulled in from the first sample
 pop_IDs = SNPs_gen$pop
 pop_IDs = gsub("\\d+","",pop_IDs)
@@ -64,121 +70,34 @@ read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse 
   tbl = read.table(read_name)
   barplot(t(as.matrix(tbl)), col = PCA23_palette[1:i], xlab = i, ylab = "Admixture", border = "NA",
           ylim = c(0,1),xlim = c(0,845))
-  text(x = SNPs_gen$strata$n_by_pop_strata,
+  text(x = x_lab_vec,
        y = rep(0,time = 21),
-       SNPs_gen$strata$pop_IDs
-       ,adj = 0,srt = 90)
-                }
-```
-#plot admixture onc k
-```{r}
-tbl = read.table("C:/Users/mboot217/Desktop/test_admix/v6_SNPs_ALL_pops.12.Q")
-tbl_clean = NA
-tbl_messy = NA
-for (i in 1:nrow(tbl)) {
-  if (max(tbl[i,])>0.6) {
-    tbl_clean = rbind.data.frame(tbl_clean,tbl[i,])
-  }
-  if (max(tbl[i,])<0.6){
-    tbl_messy = rbind.data.frame(tbl_messy,tbl[i,])
-  }
+       as.vector(unique(pop_IDs$pop_IDs)),
+       adj = 0,srt = 90)
 }
-pdf("C:/Users/mboot217/Desktop/test_admix/v6_SNPs_ALL_pops.12.pdf")
-barplot(t(as.matrix(tbl_clean)), col = PCA23_palette, xlab = nrow(tbl_clean), ylab = "Admixture", border = "NA")
-barplot(t(as.matrix(tbl_messy)), col = PCA23_palette, xlab = nrow(tbl_messy), ylab = "Admixture", border = "NA")
-barplot(t(as.matrix(tbl)), col = PCA23_palette, xlab = nrow(tbl), ylab = "Admixture", border = "NA")
-dev.off()
 
-# ,
-#           ylim = c(0,1),xlim = c(0,845))
-# text(c(48,96,143,186,211,258,301,342,359,392,428,475,504,527,555,585,614,660,690,720,758,805,845),
-#        c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
-#        c("Delavan","Lake_Wisconsin","Big_Arbor_Vitae","Chippewa_Flowage","Cutfoot_Sioux","Eau_Claire_River","Escanaba","Kawaguesaga","Lake_Koronis","Lake_Millicent","Manitowish_Lake","Medicine_Lake","Mille_Lacs","Ottertail_Lake","Pike_River","Pine_River","Red_Lake","Sanford_Lake","Sarah_Lake","St_Louis_River","Turtle_Flambeau_Flowage","Willow_Flowage","Wolf_River")
-#        ,adj = 0,srt = 90)
+
+read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse = "")
+  tbl = read.table(read_name)
+  barplot(t(as.matrix(tbl)), col = PCA23_palette[1:i], xlab = i, ylab = "Admixture", border = "NA",
+          ylim = c(0,1),xlim = c(0,845))
+  text(x = 900,
+       y = 0,
+       as.vector(unique(pop_IDs$pop_IDs)),
+       adj = 0,srt = 90)
 ```
-#old admixture example
+#exploring ggplot option
 ```{r}
-setwd("I:\\WAE_RAD_Data\\1710-PE-Whitelisted-Populations\\Paired_End\\MN_Subset\\")
-MN_subset = read.genepop('./MN_populations.snps.gen')
+#requires ggplot2 and reshape pkgs
+tmp = as.data.frame(t(tbl))
+tmp2 = melt(tmp)
+rownames(tmp) = c(1:nrow(tmp))
+tmp2$grp = c(1:length(which(tmp2$variable == unique(tmp2$variable)[1])))
 
-#test_HW_small = hw.test(pops_SMALL$raw_data)
-#fstat(pops_SMALL)
+ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(grp)), data = tmp2, stat = "identity")
 
-
-# ADMIXTURE  #
-# 9 color swatch: col = c("gray0","tan4","green","mistyrose3","yellow","midnightblue","orange","moccasin","gray50"),
-setwd('I:/WAE_RAD_Data/1710-PE-Whitelisted-Populations/Paired_End/WI_Subset/Admixture')
-
-swatch9 = c("gray90","tan4","green","mistyrose3","yellow","midnightblue","orange","moccasin","gray50")
-swatch9b = c("gray90","gray60","gray30","wheat3","tan3","burlywood4","darkgreen","forestgreen","yellowgreen")
-swatch9c = c("wheat3","tan3","burlywood4","darkgreen","forestgreen","yellowgreen","gray90","gray60","gray30")
-
-WI_N = c(47,94,118,166,197,244,276,323,370)
-WI_names = c("Chip","Eau_Cl","Esca","Lake_Milli","Manito","Medicine","St_Lou","Turt_Flam","Wolf")
-
-  
-  
-OUT_pdf = "I:/WAE_RAD_Data/1710-PE-Whitelisted-Populations/Paired_End/WI_Subset/Admixture/K_selection"
-pdf(file = OUT_pdf)
-par(mfrow = c(2,1))
-
-for (i in 2:9) {
-  K = paste(c("WI_populations.",i,".Q"), collapse = "")
-  admix_WI_subset = read.table(K)
-  barplot(t(as.matrix(admix_WI_subset)), 
-          #names.arg = names_9,
-          col = swatch9c[1:i],
-          xlab = "Individual #",
-          ylab = "Ancestry",
-          border = NA,
-          space = 0,
-          main = i,
-          #beside = TRUE
-  )
-  abline(v = WI_N, lty = 5, lwd = 2, col = "blue4")
-  mtext(WI_names, padj = 1, side = 1, at = c(0,47,94,118,166,197,244,276,323), adj = 0, par(las=1), cex = 0.5)
-}
-dev.off()
-
-
+ggplot(tmp2, aes(x = variable, fill = factor(value)))+ geom_bar(position = "fill")
+  position_stack()
 ```
 
-
-Build DAPC
-```{r}
-DAPC_20k = dapc(SNPS_20k, n.pca = 500, n.da = 8)
-#DAPC_20k$grp = as.factor(rep("Null", 845)) #NAME AS POP NOT IND
-#DAPC_20k$grp = metadata_popnames_21 #NAME AS POP NOT IND
-```
-
-#plot DAPC
-```{r}
-
-#color_clear = transparent("white",0)
-pdf(file = "../R_products/DAPC/test_ALL_20K.pdf")
-scatter(DAPC_20k,
-        scree.da=FALSE,
-        bg = 'white',
-        pch = 20, 
-        cell = 0,
-        cstar = 0,
-        col = palette_21,#palette_21,
-        #solid = 0.1,
-        cex = .2,
-        clab = 0.2,)#names? Size?
-        #leg = TRUE,
-        #txt.leg = pop_names)
-#points(DAPC_20k$grp.coord[,1],DAPC_20k$grp.coord[,2], pch=4,
-#cex=1, lwd=2, col= palette_21)
-par(xpd = TRUE)
-dev.off()
-```
-
-```{r}
-SNPS_20k@other$popname = metadata_popnames_21
-
-
-#strata(SNPS_20k) = data.frame(other(SNPS_20k))
-SNPS_20k@strata = data.frame(other(SNPS_20k))
-```
 
