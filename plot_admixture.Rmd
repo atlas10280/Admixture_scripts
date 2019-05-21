@@ -94,10 +94,12 @@ tmp2 = melt(tmp)
 rownames(tmp) = c(1:nrow(tmp))
 tmp2$grp = c(1:length(which(tmp2$variable == unique(tmp2$variable)[1])))
 
-ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(grp)), data = tmp2, stat = "identity")
+ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(grp)), data = tmp2, stat = "identity")+
+  geom_text(angle = 90, aes(x = x_lab_vec, y = 0.5, label = as.vector(unique(pop_IDs$pop_IDs))))+
+  geom_vline(xintercept = x_lab_vec, color = "black", size=.5)
 
-ggplot(tmp2, aes(x = variable, fill = factor(value)))+ geom_bar(position = "fill")
-  position_stack()
+
+
 ```
 
 
