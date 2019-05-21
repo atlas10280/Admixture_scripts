@@ -11,7 +11,7 @@ library("diveRsity", lib.loc="~/R/win-library/3.5")
 library("adegenet", lib.loc="~/R/win-library/3.5")
 library("xlsx", lib.loc="~/R/win-library/3.5")
 library("sendplot", lib.loc="~/R/win-library/3.5")
-library(dplyr)
+library("dplyr", lib.loc="~/R/win-library/3.5")
 ```
 #genepop metadata
 ```{r}
@@ -32,12 +32,6 @@ for (i in 1:nrow(n_by_pop)) {
   n_by_pop_strata = c(n_by_pop_strata,rep(x = n_by_pop[i,1],times = n_by_pop[i,1]))
 }
 n_by_pop_strata = as.data.frame(n_by_pop_strata)
-
-#make n_by_pop cumulative counts to give x values for labels
-x_lab_vec = NULL
-for (i in 1:nrow(n_by_pop)) {
-  x_lab_vec = c(x_lab_vec, sum(n_by_pop[1:i,"V1"]))
-}
 
 #extract population names, removing the ID number that gets pulled in from the first sample
 pop_IDs = SNPs_gen$pop
@@ -89,17 +83,43 @@ read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse 
 #exploring ggplot option
 ```{r}
 #requires ggplot2 and reshape pkgs
+#transpose the results to have individuals in columns and K proportions in rows
 tmp = as.data.frame(t(tbl))
+#melt the data into column format, i.e., indv, K-proportion
 tmp2 = melt(tmp)
 rownames(tmp) = c(1:nrow(tmp))
-tmp2$grp = c(1:length(which(tmp2$variable == unique(tmp2$variable)[1])))
+#add name for each K value within an individual
+tmp2$K_val = c(1:length(which(tmp2$variable == unique(tmp2$variable)[1])))
+#add the pop ID data to each individual's K values
+pop_IDs_for_admix = rep(pop_IDs$pop_IDs, each = 10)
+tmp2$pop = pop_IDs_for_admix
+#making a list to sort the results on, this will organize the admixture plot by geography and not alphabetic
+pub_table_order = c("Delavan","WolfR_","Lake_Wisconsin",
+                    "Medicine_Lake","Willow_Flowage",
+                    "Kawaguesaga","Big_Arbor_Vitae","Escanaba",
+                    "Sanford_Lake","Manitowish_Lake","Turtle_Flambeau_Flowage",
+                    "Chippewa_Flowage","Eau_Claire_River","Lake_Millicent",
+                    "St_Louis_River","Pike_River","Sarah_Lake",
+                    "Lake_Koronis","Mille_Lacs","Pine_River",
+                    "Cutfoot_Sioux","Ottertail_Lake","Red_Lake"
+                    )
+#Loop through to subset populations in order of publish table. We're really just sorting here
+tmp3 = NULL
+for (i in 1:length(pub_table_order)) {
+  tmp3 = rbind.data.frame(tmp3, tmp2[which(tmp2$pop == pub_table_order[i]),])
+}
+#add/change some metadata to make sure the plot is built in the order I wanted
+rownames(tmp3) = c(1:nrow(tmp3))
+tmp3$variable = rep(c(1:n_distinct(tmp2$variable)), each = 10)
+#rebuilding the x values for labels and lines
+x_lab_vec = tmp3 %>% 
+  group_by(pop) %>% 
+  summarise(X_max = max(variable))
+x_lab_vec = x_lab_vec %>% arrange(X_max)
 
-ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(grp)), data = tmp2, stat = "identity")+
-  geom_text(angle = 90, aes(x = x_lab_vec, y = 0.5, label = as.vector(unique(pop_IDs$pop_IDs))))+
-  geom_vline(xintercept = x_lab_vec, color = "black", size=.5)
-
-
-
+ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(K_val)), data = tmp3, stat = "identity")+
+  geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
+  geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)
 ```
 
 
