@@ -12,13 +12,16 @@ library("adegenet", lib.loc="~/R/win-library/3.5")
 library("xlsx", lib.loc="~/R/win-library/3.5")
 library("sendplot", lib.loc="~/R/win-library/3.5")
 library("dplyr", lib.loc="~/R/win-library/3.5")
+library(reshape2)
+library(ggplot2)
+library(egg)
 ```
 #genepop metadata
 ```{r}
 #read genepop that we derived the admixture data from
 #this will allow us to generalize our metadata in the figure
 #e.g. n samples per population
-SNPs_gen = read.genepop('../v6_snps_publish.2.recode.gen', ncode = 3)
+SNPs_gen = read.genepop('I:/WAE_RAD_Data/BARCODE_REPAIR_data/SNPs/v6_bcrepair_snps.gen', ncode = 3)
 
 #extract n samples per population
 n_by_pop = as.data.frame(matrix(NA,nrow = n_distinct(SNPs_gen$pop), ncol = 1))
@@ -43,8 +46,8 @@ pop_IDs = as.data.frame(pop_IDs)
 strat_dat = cbind.data.frame(n_by_pop_strata,pop_IDs)
 strata(SNPs_gen) = strat_dat
 
-SNPs_gen$strata$n_by_pop_strata
-SNPs_gen@strata@pop_IDs
+#SNPs_gen$strata$n_by_pop_strata
+#SNPs_gen@strata@pop_IDs
 
 #initialize a palette of colors we can use downstream, 23 unique hexidecimal colors here
 PCA23_palette = c("#000ffF","#0033CC","#006699","#009966","#006600",
@@ -82,17 +85,26 @@ read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse 
 ```
 #exploring ggplot option
 ```{r}
+pdf("./TEST_admixture.pdf", width = 11.5, height = 8)
+for (i in 10:20) {
+
+read_name = paste(c("I:/WAE_RAD_Data/BARCODE_REPAIR_data/Admixture/v6_bcrepair_snps.",as.character(i),".Q"),collapse = "")
+tbl = read.table(read_name)
+
 #requires ggplot2 and reshape pkgs
 #transpose the results to have individuals in columns and K proportions in rows
 tmp = as.data.frame(t(tbl))
 #melt the data into column format, i.e., indv, K-proportion
 tmp2 = melt(tmp)
-rownames(tmp) = c(1:nrow(tmp))
+rownames(tmp2) = c(1:nrow(tmp2))
 #add name for each K value within an individual
 tmp2$K_val = c(1:length(which(tmp2$variable == unique(tmp2$variable)[1])))
+
 #add the pop ID data to each individual's K values
-pop_IDs_for_admix = rep(pop_IDs$pop_IDs, each = 10)
+pop_IDs_for_admix = rep(pop_IDs$pop_IDs, each = i)
+
 tmp2$pop = pop_IDs_for_admix
+
 #making a list to sort the results on, this will organize the admixture plot by geography and not alphabetic
 pub_table_order = c("Delavan","WolfR_","Lake_Wisconsin",
                     "Medicine_Lake","Willow_Flowage",
@@ -105,21 +117,30 @@ pub_table_order = c("Delavan","WolfR_","Lake_Wisconsin",
                     )
 #Loop through to subset populations in order of publish table. We're really just sorting here
 tmp3 = NULL
-for (i in 1:length(pub_table_order)) {
-  tmp3 = rbind.data.frame(tmp3, tmp2[which(tmp2$pop == pub_table_order[i]),])
+for (j in 1:length(pub_table_order)) {
+  tmp3 = rbind.data.frame(tmp3, tmp2[which(tmp2$pop == pub_table_order[j]),])
 }
 #add/change some metadata to make sure the plot is built in the order I wanted
 rownames(tmp3) = c(1:nrow(tmp3))
-tmp3$variable = rep(c(1:n_distinct(tmp2$variable)), each = 10)
+tmp3$variable = rep(c(1:n_distinct(tmp2$variable)), each = i)
 #rebuilding the x values for labels and lines
 x_lab_vec = tmp3 %>% 
   group_by(pop) %>% 
   summarise(X_max = max(variable))
 x_lab_vec = x_lab_vec %>% arrange(X_max)
 
-ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(K_val)), data = tmp3, stat = "identity")+
+
+plt = ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(K_val)), data = tmp3, stat = "identity")+
   geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
   geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)
+ggarrange(plt)
+
+plt2 = ggplot() + geom_bar(aes(y = value, x = variable, fill = rep(PCA23_palette[1:i], 954)), data = tmp3, stat = "identity")+
+  geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
+  geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)+
+  scale_fill_manual("legend", values = rep(PCA23_palette[1:i], 954))
+ggarrange(plt2)
+
+}
+dev.off()
 ```
-
-
