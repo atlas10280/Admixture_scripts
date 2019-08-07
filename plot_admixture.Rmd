@@ -2,6 +2,11 @@
 title: "R Notebook"
 output: html_notebook
 ---
+NOTE: interaction/hardcoding required for 2 variables:
+
+1) population_list, this variable should be set == to the values in auto_pop_list, comment the pops you want to omit
+2) pub_table_order, this variable should == the formated names held in "pop_IDs", order it how you wish the pops to be plotted
+
 #Dependencies
 ```{r}
 library(tictoc)
@@ -21,12 +26,49 @@ library(egg)
 #read genepop that we derived the admixture data from
 #this will allow us to generalize our metadata in the figure
 #e.g. n samples per population
-SNPs_gen = read.genepop('I:/WAE_RAD_Data/BARCODE_REPAIR_data/SNPs/v6_bcrepair_snps.gen', ncode = 3)
+SNPs_gen = read.genepop('../../v6_novoseq2_snps_genomic.gen', ncode = 3)
+beep()
+
+
+auto_pop_list = NULL
+for (i in 1:n_distinct(SNPs_gen$pop)) {
+  auto_pop_list = paste(auto_pop_list, "'",unique(SNPs_gen$pop)[i],"'",",", sep = "")
+}
+```
+
+```{r}
+#Paste your auto_pop_list strings here, they should be formatted as csv, then parse to different lines and comment out the ones you want to omit
+population_list = c(
+  'Big_Arbor_Vitae-10-13698',
+  'Chippewa_Flowage-17-08347',
+  # 'Cutfoot_Sioux-17-15586',
+  'Delavan-15-01449',
+  'Eau_Claire_River-17-01449',
+  'Escanaba_Lake-17-02775',
+  'Kawaguesaga-11-00300',
+  # 'Lake_Koronis-17-15556',
+  'Lake_Millicent-07-00697',
+  'Lake_Wisconsin-15-05298',
+  'Manitowish_Lake-17-10943',
+  'Medicine_Lake-17-13247',
+  # 'Mille_Lacs-17-15428',
+  # 'Ottertail_Lake-17-15364',
+  # 'Pike_River-17-15524',
+  # 'Pine_River-17-15460',
+  # 'Red_Lake-17-15396',
+  'Sanford_Lake-17-02975',
+  # 'Sarah_Lake-17-15332',
+  # 'St_Louis_River-17-15492',
+  'Turtle_Flambeau_Flowage-17-08397',
+  'Willow_Flowage-11-00167',
+  'WolfR_17-03648'
+  )
+snps_subset = SNPs_gen[which(SNPs_gen$pop %in% population_list)]
 
 #extract n samples per population
-n_by_pop = as.data.frame(matrix(NA,nrow = n_distinct(SNPs_gen$pop), ncol = 1))
-for (i in 1:n_distinct(SNPs_gen$pop)) {
-  n_by_pop[i,1] = length(which(SNPs_gen$pop == unique(SNPs_gen$pop)[i]))
+n_by_pop = as.data.frame(matrix(NA,nrow = n_distinct(snps_subset$pop), ncol = 1))
+for (i in 1:n_distinct(snps_subset$pop)) {
+  n_by_pop[i,1] = length(which(snps_subset$pop == unique(snps_subset$pop)[i]))
 }
 #expand the point data to a format that will fit our genind
 n_by_pop$V1 = as.double(n_by_pop$V1)
@@ -37,14 +79,14 @@ for (i in 1:nrow(n_by_pop)) {
 n_by_pop_strata = as.data.frame(n_by_pop_strata)
 
 #extract population names, removing the ID number that gets pulled in from the first sample
-pop_IDs = SNPs_gen$pop
+pop_IDs = snps_subset$pop
 pop_IDs = gsub("\\d+","",pop_IDs)
 pop_IDs = gsub("-","",pop_IDs)
 pop_IDs = as.data.frame(pop_IDs)
 
 #now merge the metadata with the genind
 strat_dat = cbind.data.frame(n_by_pop_strata,pop_IDs)
-strata(SNPs_gen) = strat_dat
+strata(snps_subset) = strat_dat
 
 #SNPs_gen$strata$n_by_pop_strata
 #SNPs_gen@strata@pop_IDs
@@ -55,34 +97,7 @@ PCA23_palette = c("#000ffF","#0033CC","#006699","#009966","#006600",
 "#CC0099","#CC00FF","#6633FF","#CC66FF","#FF66CC",
 "#FF3366","#FF6633","#FF9900","#6699ff","#33ccff","#00ffff","#00ff99")
 ```
-#plot admixture (loop)
-This loop assumes you've run admxture for a sequence of K values
-  To use: 
-    Reset the values i iterates over to start and end at your sequence min/max for K
-    Reset the file name on the read_name variable so the loop will generalize for your data
 
-```{r}
-for (i in 6:10) {
-read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse = "")
-  tbl = read.table(read_name)
-  barplot(t(as.matrix(tbl)), col = PCA23_palette[1:i], xlab = i, ylab = "Admixture", border = "NA",
-          ylim = c(0,1),xlim = c(0,845))
-  text(x = x_lab_vec,
-       y = rep(0,time = 21),
-       as.vector(unique(pop_IDs$pop_IDs)),
-       adj = 0,srt = 90)
-}
-
-
-read_name = paste(c("../v6_snps_publish2recode.",as.character(i),".Q"),collapse = "")
-  tbl = read.table(read_name)
-  barplot(t(as.matrix(tbl)), col = PCA23_palette[1:i], xlab = i, ylab = "Admixture", border = "NA",
-          ylim = c(0,1),xlim = c(0,845))
-  text(x = 900,
-       y = 0,
-       as.vector(unique(pop_IDs$pop_IDs)),
-       adj = 0,srt = 90)
-```
 #exploring ggplot option
 ```{r}
 pdf("./TEST_admixture.pdf", width = 11.5, height = 8)
@@ -106,6 +121,7 @@ pop_IDs_for_admix = rep(pop_IDs$pop_IDs, each = i)
 tmp2$pop = pop_IDs_for_admix
 
 #making a list to sort the results on, this will organize the admixture plot by geography and not alphabetic
+#check your pop_IDs vairable and make sure you have right syntax for all your pops here!
 pub_table_order = c("Delavan","WolfR_","Lake_Wisconsin",
                     "Medicine_Lake","Willow_Flowage",
                     "Kawaguesaga","Big_Arbor_Vitae","Escanaba",
