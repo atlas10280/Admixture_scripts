@@ -34,6 +34,7 @@ auto_pop_list = NULL
 for (i in 1:n_distinct(SNPs_gen$pop)) {
   auto_pop_list = paste(auto_pop_list, "'",unique(SNPs_gen$pop)[i],"'",",", sep = "")
 }
+auto_pop_list
 ```
 
 ```{r}

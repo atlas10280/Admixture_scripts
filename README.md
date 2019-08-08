@@ -1,7 +1,7 @@
 # Admixture
 This repository contains scripts used to plot results from Admixture.
 
-Results were generated via the use of PGD Spider, Plink, and Admixture
+Results were generated via the use of PGD Spider, Plink, and Admixture, plotted in R
 
 Basic workflow:
 
@@ -24,3 +24,11 @@ Basic workflow:
     e.g. > admixture 'filename.bed' K_to_test(int)
 	can loop, see example in admixture_1_15.sh
 	you get 3*K outputs from admixture so consider running each subset in a subfolder
+	
+4) plot results	
+	This is the fun part so do it however you please, but there is a relatively optimized method in plot_admixture.Rmd
+	documentation on plotting script is inside, there are a few places where you need to adjust names to fit your populations
+	variable auto_pop_list is designed to optimize this process for your data, it requires you use your global genepop as input
+	using the included poplist will allow you to arrange the data as you see fit
+
+	HAPPY ADMIXING! :D
