@@ -100,11 +100,16 @@ PCA23_palette = c("#000ffF","#0033CC","#006699","#009966","#006600",
 ```
 
 #exploring ggplot option
-```{r}
-pdf("./TEST_admixture.pdf", width = 11.5, height = 8)
-for (i in 10:20) {
 
-read_name = paste(c("I:/WAE_RAD_Data/BARCODE_REPAIR_data/Admixture/v6_bcrepair_snps.",as.character(i),".Q"),collapse = "")
+this section requires a custom pallette for each level of K
+the order of which K is which color moves from level to level so,
+they have to be hard coded to facilitate the same cluster being represented with the same color across runs
+```{r}
+pdf("./SEMINAR_admixture_sorted.pdf", width = 11.5, height = 8, family = "Times")
+#RAN 2-15
+for (i in c(2,9,11)) {
+
+read_name = paste(c("./admixture_all_pops/v6_novoseq2_snps_genomic.",as.character(i),".Q"),collapse = "")
 tbl = read.table(read_name)
 
 #requires ggplot2 and reshape pkgs
@@ -122,15 +127,20 @@ pop_IDs_for_admix = rep(pop_IDs$pop_IDs, each = i)
 tmp2$pop = pop_IDs_for_admix
 
 #making a list to sort the results on, this will organize the admixture plot by geography and not alphabetic
-#check your pop_IDs vairable and make sure you have right syntax for all your pops here!
 pub_table_order = c("Delavan","WolfR_","Lake_Wisconsin",
                     "Medicine_Lake","Willow_Flowage",
-                    "Kawaguesaga","Big_Arbor_Vitae","Escanaba",
+                    "Kawaguesaga","Big_Arbor_Vitae","Escanaba_Lake",
                     "Sanford_Lake","Manitowish_Lake","Turtle_Flambeau_Flowage",
                     "Chippewa_Flowage","Eau_Claire_River","Lake_Millicent",
-                    "St_Louis_River","Pike_River","Sarah_Lake",
-                    "Lake_Koronis","Mille_Lacs","Pine_River",
-                    "Cutfoot_Sioux","Ottertail_Lake","Red_Lake"
+                    "St_Louis_River",
+                    "Sarah_Lake",
+                    "Lake_Koronis",
+                    "Mille_Lacs",
+                    "Pine_River",
+                    "Cutfoot_Sioux",
+                    "Ottertail_Lake",
+                    "Red_Lake",
+                    "Pike_River"
                     )
 #Loop through to subset populations in order of publish table. We're really just sorting here
 tmp3 = NULL
@@ -147,17 +157,108 @@ x_lab_vec = tmp3 %>%
 x_lab_vec = x_lab_vec %>% arrange(X_max)
 
 
-plt = ggplot() + geom_bar(aes(y = value, x = variable, fill = factor(K_val)), data = tmp3, stat = "identity")+
-  geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
-  geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)
-ggarrange(plt)
+############################
+# This section builds on the sorting performed above, 
+# in addtion to sorting based on the pop ID order (to match the order of tables)
+# I'm sorting individuals within each pop based on the descending proportion of ancestry allocated to the major K for that pop
+K_max = tmp3 %>% group_by(pop, K_val) %>% summarise(max_K = sum(value))
+K_max2 = K_max %>% group_by(pop) %>% filter(max_K == max(max_K)) 
+# need to update the variable ID as that is the Xval in the plot
+# var_ID = as.integer(1)
+admx_to_plot = NULL
+for (p in pub_table_order) {
+  # pull out a pop in the order of table
+  test_sort = tmp3[which(tmp3$pop == p),]
+  # extract the K value that accounts for the majority of that pop's ancestry
+  K_iter = K_max2[which(K_max2$pop == p),"K_val"]
+  # extract each individuals ancestry proporiton at that K
+  test_sort2 = test_sort[which(test_sort$K_val == K_iter$K_val),]  
+  # arrange the individuals based on their ancestry at that K
+  test_sort3 = test_sort2 %>% arrange(desc(value,variable))
+  # bind them back into the dataframe to plot  
+  for (v in test_sort3$variable) {
+    admx_to_plot = rbind.data.frame(admx_to_plot,tmp3[which(tmp3$variable == v),])
+    # admx_to_plot[which(admx_to_plot$pop == p & admx_to_plot$variable == v),"variable"] = var_ID
+    # var_ID = var_ID + 1
+  }
+}
+xval = 1
+var_ID_seq = seq(1,nrow(tmp3),by = i)
+for (l in var_ID_seq) {
+  admx_to_plot[c(l:(l+i-1)),"variable"] = xval
+  xval = xval + 1
+}
 
-plt2 = ggplot() + geom_bar(aes(y = value, x = variable, fill = rep(PCA23_palette[1:i], 954)), data = tmp3, stat = "identity")+
+admx_to_plot
+
+
+
+if (i == 9) {
+  #                  Sanford,  Medicine, WISC/CHIP, CHIP,    Red     , Pike    , Delavan , Minnesota, WISC
+PCA23_palette = c("#990099","#0099FF","#6600CC","#CC00CC","#FFCC00","#00FF00","#F79646","#00B050","#0066cc")
+#custom colors
+plt9 = ggplot() + geom_bar(aes(y = value, x = variable), fill = rep(PCA23_palette[1:i], nrow(pop_IDs)), data = admx_to_plot, stat = "identity")+
   geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
   geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)+
-  scale_fill_manual("legend", values = rep(PCA23_palette[1:i], 954))
-ggarrange(plt2)
-
+  scale_fill_manual("legend", values = rep(PCA23_palette[1:i], nrow(pop_IDs)))+
+    theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        plot.margin=unit(c(0,0,0,0), "cm"),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_text(""),
+        axis.title.x= element_blank(),
+        axis.ticks.x= element_blank()
+        # legend.position = "right"
+        )+
+  xlab("Individual")+
+  ylab("Ancestry proportion")
 }
+if (i == 11) {
+#                  Mille lacs, Medicine, Delavan, St Louis, WISC,   MINNESOTA, Sanford,   RED    , CHIP    ,  PIKE    , wisc/chip
+PCA23_palette = c("#666600","#0099FF","#F79646","#9999FF","#0066cc","#00B050","#990099","#FFCC00","#CC00CC","#00FF00","#6600CC")
+#custom colors
+plt11 = ggplot() + geom_bar(aes(y = value, x = variable), fill = rep(PCA23_palette[1:i], nrow(pop_IDs)), data = admx_to_plot, stat = "identity")+
+  geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
+  geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)+
+  scale_fill_manual("legend", values = rep(PCA23_palette[1:i], nrow(pop_IDs)))+
+      theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        plot.margin=unit(c(0,0,0,0), "cm"),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_text(""),
+        axis.title.x= element_blank(),
+        axis.ticks.x= element_blank()
+        # legend.position = "right"
+        )+
+  xlab("Individual")+
+  ylab("Ancestry proportion")
+}
+if (i == 2) {
+  PCA23_palette = c("#666600","#0099FF")
+plt2 = ggplot() + geom_bar(aes(y = value, x = variable), fill = rep(PCA23_palette[1:i], nrow(pop_IDs)), data = admx_to_plot, stat = "identity")+
+  geom_text(angle = 90, aes(x = x_lab_vec$X_max-15, y = 0.5, label = pub_table_order[which(pub_table_order %in% unique(tmp2$pop))]))+
+  geom_vline(xintercept = x_lab_vec$X_max, color = "black", size=.5)+
+  scale_fill_manual("legend", values = rep(PCA23_palette[1:i], nrow(pop_IDs)))+
+      theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        plot.margin=unit(c(0,0,0,0), "cm"),
+        axis.line = element_line(colour = "black"),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_text(""),
+        axis.title.x= element_blank(),
+        axis.ticks.x= element_blank()
+        # legend.position = "right"
+        )+
+  xlab("Individual")+
+  ylab("Ancestry proportion")
+  ggarrange(plt2)
+}
+}
+ggarrange(plt9,plt11, nrow = 2, ncol = 1)
 dev.off()
 ```
